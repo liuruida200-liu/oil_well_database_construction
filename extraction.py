@@ -17,41 +17,45 @@ def convert2text():
                 f.write(text)
 
 
-def parse_well_text(text_content):
+def parse_well_text(file_path):
     results = {
-        "Date Stimulated": "N/A",
-        "Stimulated Formation": "N/A",
-        "Top(Ft)": "0",
-        "Bottom(Ft)": "0",
-        "Stimulation Stages": "0",
-        "Volume": "0",
-        "Volume Units": "N/A"
+        "well_name": "N/A",
+        "operator": "N/A",
+        "enseco_job": "N/A",
+        "county": "N/A",
+        "latitude": "N/A",
+        "longitude": "N/A",
+        "datum": "N/A"
     }
-
-    # 1. Extract Date Stimulated (Matches MM/DD/YYYY)
-    date_match = re.search(r'(\d{2}/\d{2}/\d{4})', text_content)
-    if date_match:
-        results["Date Stimulated"] = date_match.group(1)
-
-    # 2. Extract Formation (Looks for 'Bakken' or text after 'Stimulated Formation')
-    formation_match = re.search(r'Stimulated Formation\s+([a-zA-Z]+)', text_content)
-    if formation_match:
-        results["Stimulated Formation"] = formation_match.group(1)
-
-    # 3. Extract Numeric Values (Volume, Top, Bottom)
-    # Note: We remove commas during extraction to meet the numeric requirement
-    volume_match = re.search(r'Volume\s+([\d,]+)', text_content)
-    if volume_match:
-        results["Volume"] = volume_match.group(1).replace(',', '')
-
+    with open(file_path, 'r', encoding='utf-8') as file:
+        text = file.read()
+    patterns = {
+        "well_name": [
+            r"(?:Well|Facility)\s*Name\s*:\s*(.*)",
+            r"Well Name and Number[\s\S]*?\n(?:[a-zA-Z]\s*\n)?(.*?)(?=\s+\d+\s+\d+\s+[NS])"
+        ],
+        "operator": [r"Well Operator : (.*?)\n"],
+        "enseco_job#": [r"\bJob (\d+)\b"],              
+        "county": [r"County : (.*?)\n"],         
+        "latitude": [r'(\d+°\d+\'\d+\.\d+\"[NS])'], 
+        "longitude": [r'(\d+°\d+\'\d+\.\d+\"[EW])'],
+        "datum": [r"Vertical Datum to DDZ\s+([\d.]+ ft)"] 
+        }
+    for key, pattern_list in patterns.items():
+        for pattern in pattern_list:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                results[key] = match.group(1).strip()
+                break
     return results
+    
+
+
+
 
 if __name__ == "__main__":
-    count = 1
     for raw_file in os.listdir(text_dir):
-        with open(text_dir + raw_file, 'r', encoding='utf-8') as file:
-            text_content = file.read()
-            a = parse_well_text(text_content)
-            print(str(count) + ":-----------------------")
-            print(a)
-            count +=1
+        f_pass = "texted/" + raw_file
+        a = parse_well_text(f_pass)
+        print(raw_file + ":-----------------------")
+        print(a)
