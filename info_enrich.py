@@ -8,17 +8,16 @@ from bs4 import BeautifulSoup
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': '',
-    'database': 'oil_lab6'
+    'password': '520529',
+    'database': '560_lab6'
 }
-
 SEARCH_URL = "https://www.drillingedge.com/search"
 BASE_URL   = "https://www.drillingedge.com"
 
 
 def _warm_session(session):
     """Fetch homepage to get the required session cookie before any search."""
-    session.get(BASE_URL, headers=HEADERS, timeout=15)
+    session.get(BASE_URL, headers=HEADERS, timeout=60)
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -182,7 +181,7 @@ def _selenium_scrape(url):
 def load_wells_from_db():
     conn = mysql.connector.connect(**DB_CONFIG)
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT * FROM wells")
+    cur.execute("SELECT * FROM well_data")
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -193,7 +192,7 @@ def update_well_in_db(well_id, enrichment):
     conn = mysql.connector.connect(**DB_CONFIG)
     cur = conn.cursor()
     cur.execute("""
-        UPDATE wells SET
+        UPDATE well_data SET
             well_status             = %(well_status)s,
             well_type               = %(well_type)s,
             well_direction          = %(well_direction)s,
@@ -246,15 +245,6 @@ if __name__ == "__main__":
                       f"oil={well.get('oil_produced_bbls')} gas={well.get('gas_produced_mcf')} "
                       f"lat={well.get('latitude')} lon={well.get('longitude')}")
         else:
-            update_well_in_db(well["id"], {
-                "well_status":       well.get("well_status", "N/A"),
-                "well_type":         well.get("well_type", "N/A"),
-                "closest_city":      well.get("closest_city", "N/A"),
-                "oil_produced_bbls": well.get("oil_produced_bbls", 0),
-                "gas_produced_mcf":  well.get("gas_produced_mcf", 0),
-                "latitude":          well.get("latitude"),
-                "longitude":         well.get("longitude"),
-                "operator":          well.get("operator", "N/A"),
-            })
+            update_well_in_db(well["id"], well)
         time.sleep(1.5)
     print("Done.")
